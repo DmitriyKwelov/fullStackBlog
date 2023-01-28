@@ -1,10 +1,13 @@
 const express = require('express')
-const jwt = require('jsonwebtoken')
 const mongoose = require('mongoose')
-// const {registerValidator} = require('./validations/aurh')
-const {validationResult, body} = require('express-validator');
-const UserModel = require('./modles/User')
-const bcrypt = require('bcrypt');
+const multer = require('multer')
+const cors = require('cors')
+const UserController = require('./controllers/UserController');
+const PostController = require('./controllers/PostController')
+const Validations = require('./validations')
+const handleValidationErrors = require('./utils/handleValidationErrors')
+
+const checkAuth = require('./utils/checkAuth')
 
 mongoose.set('strictQuery', false);
 
@@ -16,56 +19,37 @@ mongoose
 
 const app = express()
 
-app.use(express.json());
-
-
-app.post('/auth/register', [
-    body('email', 'Неверный формат почты').isEmail(),
-    body('password', 'Пароль должен быть минимум 5 символов').isLength({min: 5}),
-    body('fullName', 'Укажите имя').isLength({min: 3}),
-    body('avatarUrl', 'Неверный ссылка на аватаку').optional().isURL(),
-], async (req, res) => {
-    try {
-        const errors = validationResult(req);
-        if(!errors.isEmpty()){
-            return res.status(400).json(errors.array())
-        }
-
-        const password = req.body.password;
-        const salt = await bcrypt.genSalt(10);
-        const hash = await bcrypt.hash(password, salt)
-
-        const doc = new UserModel({
-            email: req.body.email,
-            fullName: req.body.fullName,
-            avatarUrl: req.body.avatarUrl,
-            passwordHash: hash,
-        });
-
-        const user = await doc.save();
-
-        const token = jwt.sign(
-            {
-                _id: user._id,
-            },
-            'secret1231123',
-            {
-                expiresIn: '30d',
-            });
-
-        const {passwordHash, ...userData} = user._doc;
-
-        res.json({
-            ...userData,
-            token,
-        })
-    } catch (err) {
-        console.log(err)
-        res.status(500).json({
-            message: 'Не удалось зарегистрироваться',
-        })
+const storage = multer.diskStorage({
+    destination: (_, __, cb) => {
+        cb(null, 'uploads');
+    },
+    filename: (_, file, cb) => {
+        cb(null, file.originalname);
     }
 })
+
+const upload = multer({storage});
+
+app.use(express.json());
+app.use(cors());
+app.use('/uploads', express.static('uploads'))
+
+app.post('/auth/login', handleValidationErrors, UserController.login)
+app.post('/auth/register', Validations.registerValidator, handleValidationErrors, UserController.register)
+app.get('/auth/me', checkAuth, UserController.me)
+
+app.post('/upload', checkAuth, upload.single('image'), (req, res) => {
+    res.json({
+        url: `/uploads/${req.file.originalname}`
+    })
+})
+
+app.get('/posts', PostController.getAll);
+app.get('/tags', PostController.getLastTags);
+app.get('/posts/:id', PostController.getOne);
+app.post('/posts', checkAuth, Validations.postCreateValidator, handleValidationErrors, PostController.create);
+app.delete('/posts/:id', checkAuth, PostController.remove);
+app.patch('/posts/:id', checkAuth, Validations.postCreateValidator, PostController.update);
 
 app.listen(5000, (eror) => {
     if (eror) {
