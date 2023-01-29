@@ -8,7 +8,7 @@ module.exports = function (req, res, next) {
             const decoded = jwt.verify(token, 'secret1231123');
 
             req.userId = decoded._id;
-
+            console.log(decoded._id)
             next();
         } catch (err) {
             return res.status(403).json({

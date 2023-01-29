@@ -56,7 +56,7 @@ class PostController {
                     }
                     res.json(doc)
                 }
-            );
+            ).populate('user')
         } catch (err) {
 
         }

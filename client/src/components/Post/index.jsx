@@ -10,9 +10,11 @@ import styles from './Post.module.scss';
 import { UserInfo } from '../UserInfo';
 import { PostSkeleton } from './Skeleton';
 import {NavLink} from "react-router-dom";
+import {useDispatch} from "react-redux";
+import {fetchRemovePost} from "../../redux/slices/postsSlice";
 
 export const Post = ({
-  _id,
+  id,
   title,
   createdAt,
   imageUrl,
@@ -25,17 +27,22 @@ export const Post = ({
   isLoading,
   isEditable,
 }) => {
+  const dispatch = useDispatch();
   if (isLoading) {
     return <PostSkeleton />;
   }
 
-  const onClickRemove = () => {};
+  const onClickRemove = () => {
+    if (window.confirm("Вы действительно хотите выйти?")) {
+      dispatch(fetchRemovePost(id))
+    }
+  };
 
   return (
     <div className={clsx(styles.root, { [styles.rootFull]: isFullPost })}>
       {isEditable && (
         <div className={styles.editButtons}>
-          <NavLink to={`/posts/${_id}/edit`}>
+          <NavLink to={`/posts/${id}/edit`}>
             <IconButton color="primary">
               <EditIcon />
             </IconButton>
@@ -56,7 +63,7 @@ export const Post = ({
         <UserInfo {...user} additionalText={createdAt} />
         <div className={styles.indention}>
           <h2 className={clsx(styles.title, { [styles.titleFull]: isFullPost })}>
-            {isFullPost ? title : <NavLink to={`/posts/${_id}`}>{title}</NavLink>}
+            {isFullPost ? title : <NavLink to={`/posts/${id}`}>{title}</NavLink>}
           </h2>
           <ul className={styles.tags}>
             {tags.map((name) => (

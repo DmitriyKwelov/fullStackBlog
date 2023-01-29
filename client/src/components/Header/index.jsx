@@ -4,11 +4,19 @@ import Button from '@mui/material/Button';
 import styles from './Header.module.scss';
 import Container from '@mui/material/Container';
 import {NavLink} from "react-router-dom";
+import {useDispatch, useSelector} from "react-redux";
+import {logout, selectIsAuth} from "../../redux/slices/authSlice";
 
 export const Header = () => {
-  const isAuth = false;
+  const isAuth = useSelector(selectIsAuth)
+  const dispatch = useDispatch();
 
-  const onClickLogout = () => {};
+  const onClickLogout = () => {
+    if (window.confirm("Вы действительно хотите выйти?")) {
+      dispatch(logout())
+      window.localStorage.removeItem('token')
+    }
+  };
 
   return (
     <div className={styles.root}>
@@ -20,7 +28,7 @@ export const Header = () => {
           <div className={styles.buttons}>
             {isAuth ? (
               <>
-                <NavLink to="/posts/create">
+                <NavLink to="/add-post">
                   <Button variant="contained">Написать статью</Button>
                 </NavLink>
                 <Button onClick={onClickLogout} variant="contained" color="error">
